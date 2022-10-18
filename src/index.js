@@ -65,6 +65,7 @@ const mouse = new THREE.Vector2();
 let raycaster = new THREE.Raycaster();
 let pointB = new THREE.Vector3(0, 0, -5);
 let line = new THREE.Line()
+let box
 window.addEventListener('mousemove', (e) => {
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -127,10 +128,10 @@ async function loadModels() {
   //   scene.add(cube);
   // }
   // cubes[2].add(robot)
-  wall1 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({side: THREE.DoubleSide}));
+  wall1 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
 
-  wall2 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({side: THREE.DoubleSide}));
-  wall3 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({side: THREE.DoubleSide}));
+  wall2 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
+  wall3 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
   // wall1.name = 'wall1'
   // wall2.name = 'wall2'
   // wall3.name = 'wall3'
@@ -148,13 +149,17 @@ async function loadModels() {
 
   const rayOrigin = robot.position.clone();
   const rayDirection = new THREE.Vector3(0, 0, -5);
+
   raycaster.set(rayOrigin, rayDirection);
 
   const pointA = rayOrigin.clone();
-
-  const points = new THREE.BufferGeometry().setFromPoints([pointA, pointB]);
-  line = new THREE.Line(points, new THREE.LineBasicMaterial({ color: 0xff0000 }));
-  scene.add(line);
+  box = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshNormalMaterial());
+  box.position.copy(pointA);
+  scene.add(box);
+  console.log(box);
+  // const points = new THREE.BufferGeometry().setFromPoints([pointA, pointB]);
+  // line = new THREE.Line(points, new THREE.LineBasicMaterial({ color: 0xff0000 }));
+  // scene.add(line);
 
 }
 
@@ -203,11 +208,14 @@ function animate(dt) {
     if (currentIntersect) {
       // currentIntersect.object.material.color.set(0xff0000);
       console.log('mouse enter')
-      pointB.copy(intersects[0].point)
+      // pointB.copy(intersects[0].point)
+      pointB = intersects[0].distance
       robot.lookAt(intersects[0].point)
       robot.rotateY(Math.PI / 2)
-      line.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
-      line.geometry.attributes.position.needsUpdate = true
+      // line.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
+      // line.geometry.attributes.position.needsUpdate = true
+      // box.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
+      box.geometry.attributes.position.needUpdate = true
 
     }
     // intersects[0].object.material.color.set(0x00ff00);
