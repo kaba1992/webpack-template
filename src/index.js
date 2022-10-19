@@ -33,7 +33,7 @@ clock = new THREE.Clock();
 const perlin = new Perlin(Math.random())
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.z = 8
+camera.position.z = 10;
 //camera.position.y = 3
 //camera.position.x = 3
 
@@ -77,7 +77,9 @@ let plane
 
 // video
 const video = document.getElementById('video');
-const videotexture = new THREE.VideoTexture(video);
+const videoTexture = new THREE.VideoTexture(video);
+
+videoTexture.flipY = false;
 
 let geometry, material, points
 let lineParticlesGeometry, lineParticlesMaterial, lineParticles
@@ -91,8 +93,8 @@ let parameters = {
 // play video with promise to wait for it to be ready
 
 
-  video.play();
-  video.loop = true;
+video.play();
+video.loop = true;
 
 
 
@@ -123,19 +125,19 @@ async function loadModels() {
    * Walls
    */
 
-  wall1 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
+  wall1 = new THREE.Mesh(new THREE.PlaneGeometry(5, 5, 5), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
 
-  wall2 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
-  wall3 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
+  wall2 = new THREE.Mesh(new THREE.PlaneGeometry(5, 5, 5), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
+  wall3 = new THREE.Mesh(new THREE.PlaneGeometry(5, 5, 5), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
   wall1.name = 'wall1'
   wall2.name = 'wall2'
   wall3.name = 'wall3'
 
   wall2.rotation.y = Math.PI / 2
-  wall2.position.x = -1.5
-  wall3.position.z = -1.5
+  wall2.position.x = -2.5
+  wall3.position.z = -2.5
   wall1.rotation.x = Math.PI / 2
-  wall1.position.y = -1.5
+  wall1.position.y = -2.5
   walls.add(wall1, wall2, wall3)
 
   scene.add(robot, walls)
@@ -176,23 +178,23 @@ async function loadModels() {
 
 }
 
- const PlaneGeo = new THREE.PlaneGeometry(1.5, 1, 128, 128);
+const PlaneGeo = new THREE.PlaneGeometry(2, 1.5, 128, 128);
 
 
 planeMaterial = new THREE.ShaderMaterial({
- side: THREE.DoubleSide,
- vertexShader: waterVertexShader,
- fragmentShader: waterFragmentShader,
- uniforms:
- {
-   texture: { value: videotexture },
-   uTime: { value: 0 },
-   uBigWavesElevation: { value: 0.1 },
-   uBigWavesFrequency: { value: new THREE.Vector2(4, 1.5) },
+  side: THREE.DoubleSide,
+  vertexShader: waterVertexShader,
+  fragmentShader: waterFragmentShader,
+  uniforms:
+  {
+    video: { value: videoTexture },
+    uTime: { value: 0 },
+    uBigWavesElevation: { value: 0.1 },
+    uBigWavesFrequency: { value: new THREE.Vector2(4, 1.5) },
 
- },
+  },
   transparent: true,
-  depthTest: false,
+  // depthTest: false,
 });
 plane = new THREE.Mesh(PlaneGeo, planeMaterial);
 scene.add(plane);
@@ -318,13 +320,13 @@ function animate(dt) {
   renderer.toneMappingExposure = 1;
   renderer.outputEncoding = THREE.sRGBEncoding;
   time += 0.01
-planeMaterial.uniforms.uTime.value += delta;
+  planeMaterial.uniforms.uTime.value = time;
 
-// update water shader
-// planeMaterial.uniforms.uTime.value = time;
-/**
-   * Raycaster and intersections
-   */
+  // update water shader
+  // planeMaterial.uniforms.uTime.value = time;
+  /**
+     * Raycaster and intersections
+     */
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(walls.children, true);
 
@@ -354,18 +356,18 @@ planeMaterial.uniforms.uTime.value += delta;
         plane.rotation.y = 0
         plane.rotation.z = 0
         //add offset to plane to stay on wall
-        plane.position.y = pointB.y + 0.001
-        // plane.position.x < 0 ? plane.position.x = pointB.x + planeHeight / 2 :plane.position.x = pointB.x - planeHeight / 2
-        // plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 :plane.position.z = pointB.z - planeWidth / 2
-        pointB.x < 0 ? pointB.x = pointB.x + planeHeight / 2 : pointB.x = pointB.x - planeHeight / 2
-        pointB.z < 0 ? pointB.z = pointB.z + planeWidth / 2 : pointB.z = pointB.z - planeWidth / 2
+        plane.position.y = pointB.y + 0.1
+        plane.position.x < 0 ? plane.position.x = pointB.x + planeHeight / 2 : plane.position.x = pointB.x - planeHeight / 2
+        plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
 
       }
       if (currentIntersect.object.name == 'wall2') {
         plane.rotation.x = 0
         plane.rotation.y = Math.PI / 2
-        plane.rotation.z = 0
+        plane.rotation.z = Math.PI 
         plane.position.x = pointB.x + 0.001
+        plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 : plane.position.y = pointB.y - planeHeight / 2
+        plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
 
 
       }
@@ -374,10 +376,9 @@ planeMaterial.uniforms.uTime.value += delta;
         plane.rotation.y = 0
         plane.rotation.z = Math.PI
         plane.position.z = pointB.z + 0.001
-        // plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 :plane.position.y = pointB.y - planeHeight / 2
-        // plane.position.x < 0 ? plane.position.x = pointB.x + planeWidth / 2 :plane.position.x = pointB.x - planeWidth / 2
-        pointB.y < 0 ? pointB.y = pointB.y + planeHeight / 2 : pointB.y = pointB.y - planeHeight / 2
-        pointB.x < 0 ? pointB.x = pointB.x + planeWidth / 2 : pointB.x = pointB.x - planeWidth / 2
+        plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 : plane.position.y = pointB.y - planeHeight / 2
+        plane.position.x < 0 ? plane.position.x = pointB.x + planeWidth / 2 : plane.position.x = pointB.x - planeWidth / 2
+
       }
 
     }

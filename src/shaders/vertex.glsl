@@ -10,7 +10,7 @@ void main()
 vUv = uv;
 vec4 modelPosition = modelMatrix * vec4(position, 1.0);
 float elevation = sin(modelPosition.x * uBigWavesFrequency.x + uTime) *
-                  sin(modelPosition.z * uBigWavesFrequency.y + uTime) *
+                  cos(modelPosition.z * uBigWavesFrequency.y + uTime) *
                       uBigWavesElevation;
 
     modelPosition.y += elevation;
