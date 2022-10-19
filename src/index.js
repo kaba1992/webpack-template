@@ -9,6 +9,12 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
 import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js';
+import { PlaneGeometry } from 'three';
+
+import waterVertexShader from './shaders/vertex.glsl'
+import waterFragmentShader from './shaders/fragment.glsl'
+console.log(waterVertexShader);
+console.log(waterFragmentShader);
 
 // HELPERS
 
@@ -54,9 +60,10 @@ const textureCube = loaderCube.load([
 ]);
 
 const numCubes = 10;
-let cube
+
 let radius
 const cubes = []
+const r = 50;
 let robot
 const walls = new THREE.Group()
 let wall1, wall2, wall3
@@ -64,8 +71,32 @@ let wall1, wall2, wall3
 const mouse = new THREE.Vector2();
 let raycaster = new THREE.Raycaster();
 let pointB = new THREE.Vector3(0, 0, -5);
+let pointA = new THREE.Vector3(0, 0, 0);
 let line = new THREE.Line()
-let box
+let plane
+
+// video
+const video = document.getElementById('video');
+const videotexture = new THREE.VideoTexture(video);
+
+let geometry, material, points
+let lineParticlesGeometry, lineParticlesMaterial, lineParticles
+let planeMaterial = new THREE.ShaderMaterial()
+
+let parameters = {
+  count: null,
+  radius: null
+};
+
+// play video with promise to wait for it to be ready
+
+
+  video.play();
+  video.loop = true;
+
+
+
+
 window.addEventListener('mousemove', (e) => {
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -73,34 +104,10 @@ window.addEventListener('mousemove', (e) => {
 })
 
 async function loadModels() {
-  const ipod = await modelLoader('/assets/models/ipod/iPod.gltf')
-  ipod.scene.scale.set(0.015, 0.015, 0.015)
-  ipod.scene.position.set(-2, 1.1, 1)
-  ipod.scene.rotation.y = Math.PI
 
-  ipod.scene.traverse(function (el) {
-    if (el.type == 'Mesh') {
-      el.material.envMap = textureCube
-      el.material.envMapIntensity = 1
-    }
-  })
-
-  //////////////////
-
-  const platform = await modelLoader('/assets/models/platform/scene.gltf')
-  platform.scene.scale.set(0.2, 0.2, 0.2)
-  mixer = new THREE.AnimationMixer(platform.scene);
-  platform.animations.forEach((clip) => {
-    mixer.clipAction(clip).play();
-  });
-
-  platform.scene.traverse(function (el) {
-    if (el.type == 'Mesh') {
-      el.material.envMap = textureCube
-      el.material.envMapIntensity = 2
-    }
-  })
-
+  /**
+   * Robot
+   */
   const model = await modelLoader('/assets/models/robot/Robot_Renaud.glb')
   robot = model.scene
   robot.scale.set(0.5, 0.5, 0.5)
@@ -112,29 +119,17 @@ async function loadModels() {
       el.material.envMapIntensity = 1
     }
   })
+  /**
+   * Walls
+   */
 
-  // create 10 cubes
-
-  // for (let i = 0; i < numCubes; i++) {
-  //   const geometry = new THREE.BoxGeometry(1, 1, 1);
-  //   const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-  //   cube = new THREE.Mesh(geometry, material);
-  //   cubes.push(cube)
-  //   radius = 2.5;
-  //   // place cubes in a circle
-  //   cube.position.x = Math.cos((i / numCubes) * Math.PI * 2) * radius;
-  //   cube.position.y = Math.sin((i / numCubes) * Math.PI * 2) * radius;
-
-  //   scene.add(cube);
-  // }
-  // cubes[2].add(robot)
   wall1 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
 
   wall2 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
   wall3 = new THREE.Mesh(new THREE.PlaneGeometry(3, 3, 3), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
-  // wall1.name = 'wall1'
-  // wall2.name = 'wall2'
-  // wall3.name = 'wall3'
+  wall1.name = 'wall1'
+  wall2.name = 'wall2'
+  wall3.name = 'wall3'
 
   wall2.rotation.y = Math.PI / 2
   wall2.position.x = -1.5
@@ -143,29 +138,152 @@ async function loadModels() {
   wall1.position.y = -1.5
   walls.add(wall1, wall2, wall3)
 
-
   scene.add(robot, walls)
 
 
+
+  /**
+   * Raycaster Visual Line
+   */
   const rayOrigin = robot.position.clone();
   const rayDirection = new THREE.Vector3(0, 0, -5);
 
   raycaster.set(rayOrigin, rayDirection);
 
-  const pointA = rayOrigin.clone();
-  box = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshNormalMaterial());
-  box.position.copy(pointA);
-  scene.add(box);
-  console.log(box);
-  // const points = new THREE.BufferGeometry().setFromPoints([pointA, pointB]);
-  // line = new THREE.Line(points, new THREE.LineBasicMaterial({ color: 0xff0000 }));
-  // scene.add(line);
+  pointA = rayOrigin.clone();
+
+
+  const points = new THREE.BufferGeometry().setFromPoints([pointA, pointB]);
+  line = new THREE.Line(points, new THREE.LineBasicMaterial({
+    color: 0xff0000
+  }));
+  scene.add(line);
+
+  // create particle to fit on the line
+
+
+
+  /**
+   * Screen for video
+   */
+
+
+  /**
+ * Particles
+ */
+
+
 
 }
 
+ const PlaneGeo = new THREE.PlaneGeometry(1.5, 1, 128, 128);
 
 
+planeMaterial = new THREE.ShaderMaterial({
+ side: THREE.DoubleSide,
+ vertexShader: waterVertexShader,
+ fragmentShader: waterFragmentShader,
+ uniforms:
+ {
+   texture: { value: videotexture },
+   uTime: { value: 0 },
+   uBigWavesElevation: { value: 0.1 },
+   uBigWavesFrequency: { value: new THREE.Vector2(4, 1.5) },
 
+ },
+  transparent: true,
+  depthTest: false,
+});
+plane = new THREE.Mesh(PlaneGeo, planeMaterial);
+scene.add(plane);
+
+parameters.count = 2000;
+parameters.size = 0.01;
+const generateWorldGalaxy = () => {
+  /**
+   * Geometry
+   */
+  geometry = new THREE.BufferGeometry()
+  const positions = new Float32Array(parameters.count * 3)
+
+  for (let i = 0; i < parameters.count; i++) {
+    const i3 = i * 3
+
+    const x = Math.random() * r - r / 2
+    const y = Math.random() * r - r / 2
+    const z = Math.random() * r - r / 2
+    positions[i3] = x
+    positions[i3 + 1] = y
+    positions[i3 + 2] = z
+  }
+
+  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  material = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: parameters.size,
+    sizeAttenuation: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  })
+
+  /**
+    * Points
+    */
+  points = new THREE.Points(geometry, material)
+  scene.add(points)
+  // Destroy old galaxy
+  // if (points !== null) {
+  //   geometry.dispose()
+  //   material.dispose()
+  //   scene.remove(points)
+  // }
+}
+generateWorldGalaxy()
+
+// const generateLineParticles= () => {
+//   /**
+//    * Geometry
+//    */
+//   lineParticlesGeometry = new THREE.BufferGeometry()
+//   const positions = new Float32Array(parameters.count * 3)
+
+//   for (let i = 0; i < parameters.count; i++) {
+//     const i3 = i * 3
+
+//     const x = Math.random() * r - r / 2
+//     const y = Math.random() * r - r / 2
+//     const z = Math.random() * r - r / 2
+//     positions[i3] = x
+//     positions[i3 + 1] = y
+//     positions[i3 + 2] = z
+//   }
+
+//   lineParticlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+//   lineParticlesMaterial = new THREE.PointsMaterial({
+//     color: 0xffffff,
+//     size: parameters.size,
+//     sizeAttenuation: true,
+//     depthWrite: false,
+//     blending: THREE.AdditiveBlending
+//   })
+
+//   /**
+//     * Points
+//     */
+//   lineParticles = new THREE.Points(lineParticlesGeometry, lineParticlesMaterial)
+//   scene.add(lineParticles)
+//   // Destroy old galaxy
+//   // if (points !== null) {
+//   //   geometry.dispose()
+//   //   material.dispose()
+//   //   scene.remove(points)
+//   // }
+// }
+// generateLineParticles()
+
+/**
+ * Lights
+ */
 const light = new THREE.DirectionalLight(0xFFFFFF);
 const ambientLight = new THREE.AmbientLight(0x404040);
 
@@ -182,8 +300,6 @@ const ssaoPass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeig
 const filmEffect = new FilmPass(.5, .5, 1, 0)
 
 
-
-
 let time = 0
 let currentIntersect = null
 
@@ -191,6 +307,8 @@ function animate(dt) {
   composer.render();
 
   controls.update();
+  const delta = clock.getDelta();
+
 
 
   renderer.antialias = true;
@@ -200,22 +318,67 @@ function animate(dt) {
   renderer.toneMappingExposure = 1;
   renderer.outputEncoding = THREE.sRGBEncoding;
   time += 0.01
+planeMaterial.uniforms.uTime.value += delta;
 
+// update water shader
+// planeMaterial.uniforms.uTime.value = time;
+/**
+   * Raycaster and intersections
+   */
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(walls.children, true);
+
 
   if (intersects.length) {
     if (currentIntersect) {
       // currentIntersect.object.material.color.set(0xff0000);
-      console.log('mouse enter')
+      // console.log('mouse enter')
       // pointB.copy(intersects[0].point)
-      pointB = intersects[0].distance
+      const intersect = intersects[0]
+      pointB = intersect.point
+      parameters.radius = intersect.distance
+      plane.position.copy(pointB)
+
+
       robot.lookAt(intersects[0].point)
       robot.rotateY(Math.PI / 2)
-      // line.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
-      // line.geometry.attributes.position.needsUpdate = true
-      // box.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
-      box.geometry.attributes.position.needUpdate = true
+      line.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
+      line.geometry.attributes.position.needsUpdate = true
+
+      const planeHeight = plane.geometry.parameters.height;
+      const planeWidth = plane.geometry.parameters.width;
+      console.log(planeHeight, planeWidth);
+      //rotate plane depending on wall
+      if (currentIntersect.object.name == 'wall1') {
+        plane.rotation.x = Math.PI / 2
+        plane.rotation.y = 0
+        plane.rotation.z = 0
+        //add offset to plane to stay on wall
+        plane.position.y = pointB.y + 0.001
+        // plane.position.x < 0 ? plane.position.x = pointB.x + planeHeight / 2 :plane.position.x = pointB.x - planeHeight / 2
+        // plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 :plane.position.z = pointB.z - planeWidth / 2
+        pointB.x < 0 ? pointB.x = pointB.x + planeHeight / 2 : pointB.x = pointB.x - planeHeight / 2
+        pointB.z < 0 ? pointB.z = pointB.z + planeWidth / 2 : pointB.z = pointB.z - planeWidth / 2
+
+      }
+      if (currentIntersect.object.name == 'wall2') {
+        plane.rotation.x = 0
+        plane.rotation.y = Math.PI / 2
+        plane.rotation.z = 0
+        plane.position.x = pointB.x + 0.001
+
+
+      }
+      if (currentIntersect.object.name == 'wall3') {
+        plane.rotation.x = 0
+        plane.rotation.y = 0
+        plane.rotation.z = Math.PI
+        plane.position.z = pointB.z + 0.001
+        // plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 :plane.position.y = pointB.y - planeHeight / 2
+        // plane.position.x < 0 ? plane.position.x = pointB.x + planeWidth / 2 :plane.position.x = pointB.x - planeWidth / 2
+        pointB.y < 0 ? pointB.y = pointB.y + planeHeight / 2 : pointB.y = pointB.y - planeHeight / 2
+        pointB.x < 0 ? pointB.x = pointB.x + planeWidth / 2 : pointB.x = pointB.x - planeWidth / 2
+      }
 
     }
     // intersects[0].object.material.color.set(0x00ff00);
@@ -225,7 +388,7 @@ function animate(dt) {
     if (currentIntersect) {
       // currentIntersect.object.material.color.set(0xff0000);
 
-      console.log('mouse leave')
+      // console.log('mouse leave')
     }
 
     currentIntersect = null
@@ -233,19 +396,10 @@ function animate(dt) {
 
 
 
-  const delta = clock.getDelta();
+
   if (mixer) mixer.update(delta);
 
-  cubes.forEach((cube, i) => {
-    const angle = (i / numCubes * Math.PI * 2);
-    cube.rotation.x = time;
-    cube.rotation.y = time;
-    cube.rotation.z = time;
-    cube.position.x = Math.sin(angle + time) * radius;
-    cube.position.y = Math.cos(angle + time) * radius;
 
-
-  })
   if (robot) {
 
   }
@@ -259,3 +413,33 @@ const init = () => {
   })
 }
 init()
+
+  // /**
+  //  * Cubes animation
+  //  */
+
+  // cubes.forEach((cube, i) => {
+  //   const angle = (i / numCubes * Math.PI * 2);
+  //   cube.rotation.x = time;
+  //   cube.rotation.y = time;
+  //   cube.rotation.z = time;
+  //   cube.position.x = Math.sin(angle + time) * radius;
+  //   cube.position.y = Math.cos(angle + time) * radius;
+
+
+  // })
+  // create 10 cubes
+
+  // for (let i = 0; i < numCubes; i++) {
+  //   const geometry = new THREE.BoxGeometry(1, 1, 1);
+  //   const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  //   cube = new THREE.Mesh(geometry, material);
+  //   cubes.push(cube)
+  //   radius = 2.5;
+  //   // place cubes in a circle
+  //   cube.position.x = Math.cos((i / numCubes) * Math.PI * 2) * radius;
+  //   cube.position.y = Math.sin((i / numCubes) * Math.PI * 2) * radius;
+
+  //   scene.add(cube);
+  // }
+  // cubes[2].add(robot)
