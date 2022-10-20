@@ -13,8 +13,7 @@ import { PlaneGeometry } from 'three';
 
 import waterVertexShader from './shaders/vertex.glsl'
 import waterFragmentShader from './shaders/fragment.glsl'
-console.log(waterVertexShader);
-console.log(waterFragmentShader);
+
 
 // HELPERS
 
@@ -67,6 +66,10 @@ const r = 50;
 let robot
 const walls = new THREE.Group()
 let wall1, wall2, wall3
+
+let wall1Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
+let wall2Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
+let wall3Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
 // get mose position
 const mouse = new THREE.Vector2();
 let raycaster = new THREE.Raycaster();
@@ -125,10 +128,33 @@ async function loadModels() {
    * Walls
    */
 
-  wall1 = new THREE.Mesh(new THREE.PlaneGeometry(5, 5, 5), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
+  wall1 = new THREE.Mesh(wall1Geo, new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+        side: THREE.DoubleSide,
+        wireframe: false,
+        transparent: false,
+        vertexColors: THREE.FaceColors, // CHANGED
+  }));
+  wall1.colorsNeedUpdate = true;
+  console.log(wall1Geo);
 
-  wall2 = new THREE.Mesh(new THREE.PlaneGeometry(5, 5, 5), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
-  wall3 = new THREE.Mesh(new THREE.PlaneGeometry(5, 5, 5), new THREE.MeshNormalMaterial({ side: THREE.DoubleSide }));
+  wall2 = new THREE.Mesh(wall2Geo, new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    wireframe: false,
+    transparent: false,
+    vertexColors: THREE.FaceColors, // CHANGED
+  }));
+  wall2.colorsNeedUpdate = true;
+  wall3 = new THREE.Mesh(wall3Geo, new THREE.MeshBasicMaterial({
+
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    wireframe: false,
+    transparent: false,
+    vertexColors: THREE.FaceColors, // CHANGED
+  }));
+  wall3.colorsNeedUpdate = true;
   wall1.name = 'wall1'
   wall2.name = 'wall2'
   wall3.name = 'wall3'
@@ -329,6 +355,7 @@ function animate(dt) {
      */
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(walls.children, true);
+  let intersectFace = null;
 
 
   if (intersects.length) {
@@ -337,10 +364,12 @@ function animate(dt) {
       // console.log('mouse enter')
       // pointB.copy(intersects[0].point)
       const intersect = intersects[0]
+      console.log(intersect);
       pointB = intersect.point
       parameters.radius = intersect.distance
       plane.position.copy(pointB)
-
+      intersectFace = intersect.face
+     console.log(intersectFace);
 
       robot.lookAt(intersects[0].point)
       robot.rotateY(Math.PI / 2)
@@ -349,7 +378,6 @@ function animate(dt) {
 
       const planeHeight = plane.geometry.parameters.height;
       const planeWidth = plane.geometry.parameters.width;
-      console.log(planeHeight, planeWidth);
       //rotate plane depending on wall
       if (currentIntersect.object.name == 'wall1') {
         plane.rotation.x = Math.PI / 2
@@ -364,7 +392,7 @@ function animate(dt) {
       if (currentIntersect.object.name == 'wall2') {
         plane.rotation.x = 0
         plane.rotation.y = Math.PI / 2
-        plane.rotation.z = Math.PI 
+        plane.rotation.z = Math.PI
         plane.position.x = pointB.x + 0.001
         plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 : plane.position.y = pointB.y - planeHeight / 2
         plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
@@ -395,7 +423,7 @@ function animate(dt) {
     currentIntersect = null
   }
 
-
+  plane.geometry.elementsNeedUpdate = true;
 
 
   if (mixer) mixer.update(delta);
