@@ -87,6 +87,67 @@ videoTexture.flipY = false;
 let geometry, material, points
 let lineParticlesGeometry, lineParticlesMaterial, lineParticles
 let planeMaterial = new THREE.ShaderMaterial()
+let bufferGeo = new THREE.BufferGeometry()
+
+const indices = [];
+
+const vertices = [];
+const normals = [];
+const colors = [];
+
+const size = 5;
+const segments = 5;
+
+const halfSize = size / 2;
+const segmentSize = size / segments;
+
+// generate vertices, normals and color data for a simple grid geometry
+
+for (let i = 0; i <= segments; i++) {
+
+  const y = (i * segmentSize) - halfSize;
+
+  for (let j = 0; j <= segments; j++) {
+
+    const x = (j * segmentSize) - halfSize;
+
+    vertices.push(x, - y, 0);
+    normals.push(0, 0, 1);
+
+    const r = (x / size) + 0.5;
+    const g = (y / size) + 0.5;
+
+    colors.push(r, g, 1);
+
+  }
+
+}
+
+// generate indices (data for element array buffer)
+
+for (let i = 0; i < segments; i++) {
+
+  for (let j = 0; j < segments; j++) {
+
+    const a = i * (segments + 1) + (j + 1);
+    const b = i * (segments + 1) + j;
+    const c = (i + 1) * (segments + 1) + j;
+    const d = (i + 1) * (segments + 1) + (j + 1);
+
+    // generate two faces (triangles) per iteration
+
+    indices.push(a, b, d); // face one
+    indices.push(b, c, d); // face two
+
+  }
+
+}
+
+bufferGeo.setIndex(indices);
+bufferGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+bufferGeo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+bufferGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
 
 let parameters = {
   count: null,
@@ -128,31 +189,21 @@ async function loadModels() {
    * Walls
    */
 
-  wall1 = new THREE.Mesh(wall1Geo, new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-        side: THREE.DoubleSide,
-        wireframe: false,
-        transparent: false,
-        vertexColors: THREE.FaceColors, // CHANGED
+  wall1 = new THREE.Mesh(bufferGeo, new THREE.MeshPhongMaterial({
+    side: THREE.DoubleSide,
+    vertexColors: true
   }));
   wall1.colorsNeedUpdate = true;
-  console.log(wall1Geo);
 
-  wall2 = new THREE.Mesh(wall2Geo, new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+
+  wall2 = new THREE.Mesh(bufferGeo, new THREE.MeshPhongMaterial({
     side: THREE.DoubleSide,
-    wireframe: false,
-    transparent: false,
-    vertexColors: THREE.FaceColors, // CHANGED
+    vertexColors: true
   }));
   wall2.colorsNeedUpdate = true;
-  wall3 = new THREE.Mesh(wall3Geo, new THREE.MeshBasicMaterial({
-
-    color: 0xffffff,
+  wall3 = new THREE.Mesh(bufferGeo, new THREE.MeshPhongMaterial({
     side: THREE.DoubleSide,
-    wireframe: false,
-    transparent: false,
-    vertexColors: THREE.FaceColors, // CHANGED
+    vertexColors: true
   }));
   wall3.colorsNeedUpdate = true;
   wall1.name = 'wall1'
@@ -168,7 +219,7 @@ async function loadModels() {
 
   scene.add(robot, walls)
 
-
+console.log(bufferGeo);
 
   /**
    * Raycaster Visual Line
@@ -259,12 +310,7 @@ const generateWorldGalaxy = () => {
     */
   points = new THREE.Points(geometry, material)
   scene.add(points)
-  // Destroy old galaxy
-  // if (points !== null) {
-  //   geometry.dispose()
-  //   material.dispose()
-  //   scene.remove(points)
-  // }
+
 }
 generateWorldGalaxy()
 
@@ -364,12 +410,15 @@ function animate(dt) {
       // console.log('mouse enter')
       // pointB.copy(intersects[0].point)
       const intersect = intersects[0]
-      console.log(intersect);
+      // console.log(intersect);
       pointB = intersect.point
       parameters.radius = intersect.distance
       plane.position.copy(pointB)
       intersectFace = intersect.face
-     console.log(intersectFace);
+      // change color of intersected face
+      
+  
+
 
       robot.lookAt(intersects[0].point)
       robot.rotateY(Math.PI / 2)
