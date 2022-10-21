@@ -10,10 +10,12 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
 import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js';
 import { PlaneGeometry } from 'three';
+import * as dat from 'lil-gui'
 
 import waterVertexShader from './shaders/vertex.glsl'
 import waterFragmentShader from './shaders/fragment.glsl'
 
+const gui = new dat.GUI()
 
 // HELPERS
 
@@ -23,6 +25,8 @@ const modelLoader = (url) => {
     loader.load(url, data => resolve(data), null, reject);
   });
 }
+
+
 
 // VARIABLES
 
@@ -149,10 +153,7 @@ bufferGeo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
 bufferGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
 
-let parameters = {
-  count: null,
-  radius: null
-};
+
 
 // play video with promise to wait for it to be ready
 
@@ -194,18 +195,20 @@ async function loadModels() {
     vertexColors: true
   }));
   wall1.colorsNeedUpdate = true;
-
+  wall1.receiveShadow = true;
 
   wall2 = new THREE.Mesh(bufferGeo, new THREE.MeshPhongMaterial({
     side: THREE.DoubleSide,
     vertexColors: true
   }));
   wall2.colorsNeedUpdate = true;
+  wall2.receiveShadow = true;
   wall3 = new THREE.Mesh(bufferGeo, new THREE.MeshPhongMaterial({
     side: THREE.DoubleSide,
     vertexColors: true
   }));
   wall3.colorsNeedUpdate = true;
+  wall3.receiveShadow = true;
   wall1.name = 'wall1'
   wall2.name = 'wall2'
   wall3.name = 'wall3'
@@ -219,7 +222,7 @@ async function loadModels() {
 
   scene.add(robot, walls)
 
-console.log(bufferGeo);
+
 
   /**
    * Raycaster Visual Line
@@ -274,45 +277,32 @@ planeMaterial = new THREE.ShaderMaterial({
   // depthTest: false,
 });
 plane = new THREE.Mesh(PlaneGeo, planeMaterial);
+plane.receiveShadow = true;
 scene.add(plane);
 
+let parameters = {
+  count: null,
+  size: 0.02,
+};
+
 parameters.count = 2000;
-parameters.size = 0.01;
-const generateWorldGalaxy = () => {
-  /**
-   * Geometry
-   */
-  geometry = new THREE.BufferGeometry()
-  const positions = new Float32Array(parameters.count * 3)
+parameters.size = 0.03;
 
-  for (let i = 0; i < parameters.count; i++) {
-    const i3 = i * 3
+let paramradius = 0;
 
-    const x = Math.random() * r - r / 2
-    const y = Math.random() * r - r / 2
-    const z = Math.random() * r - r / 2
-    positions[i3] = x
-    positions[i3 + 1] = y
-    positions[i3 + 2] = z
-  }
 
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  material = new THREE.PointsMaterial({
-    color: 0xffffff,
-    size: parameters.size,
-    sizeAttenuation: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending
-  })
+/**
+ * Geometry and materials for particles
+ */
+geometry = new THREE.BufferGeometry()
+material = new THREE.PointsMaterial({
+  color: 0x000000,
+  size: parameters.size,
+  sizeAttenuation: true,
+  depthWrite: true,
+  blending: THREE.AdditiveBlending
+})
 
-  /**
-    * Points
-    */
-  points = new THREE.Points(geometry, material)
-  scene.add(points)
-
-}
-generateWorldGalaxy()
 
 // const generateLineParticles= () => {
 //   /**
@@ -355,14 +345,46 @@ generateWorldGalaxy()
 // }
 // generateLineParticles()
 
+for (let i = 0; i < numCubes; i++) {
+  const geometry = new THREE.BoxGeometry(1, 1, 1);
+  const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+ const cube = new THREE.Mesh(geometry, material);
+  cubes.push(cube)
+  radius = 2.5;
+  // place cubes in a circle
+  cube.position.x = Math.cos((i / numCubes) * Math.PI * 2) * radius;
+  cube.position.y = Math.sin((i / numCubes) * Math.PI * 2) * radius;
+  cube.position.z = -2;
+cube.receiveShadow = true;
+  scene.add(cube);
+}
+
 /**
  * Lights
  */
 const light = new THREE.DirectionalLight(0xFFFFFF);
 const ambientLight = new THREE.AmbientLight(0x404040);
 
-scene.add(light);
+const coneLight = new THREE.SpotLight(0xf0ff00, 1, 5, Math.PI * 0.3, 0.25, 1);
+coneLight.rotateX(Math.PI * 0.5);
+coneLight.penumbra = 1;
+coneLight.position.set(0, -1, 0);
+coneLight.power = 10;
+coneLight.castShadow = true;
+coneLight.shadow.mapSize.width = 1024;
+coneLight.shadow.mapSize.height = 1024;
+coneLight.shadow.camera.fov = 30;
+coneLight.shadow.camera.near = 0.5;
+coneLight.shadow.camera.far = 3;
+
+
+const coneLightHelper = new THREE.SpotLightHelper(coneLight);
+
+scene.add(coneLight, coneLight.target);
 scene.add(ambientLight);
+const spotLightCameraHelper = new THREE.CameraHelper(coneLight.shadow.camera)
+
+// scene.add(spotLightCameraHelper)
 
 // POST EFFECTS IF NEEDED
 
@@ -406,18 +428,42 @@ function animate(dt) {
 
   if (intersects.length) {
     if (currentIntersect) {
-      // currentIntersect.object.material.color.set(0xff0000);
-      // console.log('mouse enter')
-      // pointB.copy(intersects[0].point)
+
       const intersect = intersects[0]
       // console.log(intersect);
       pointB = intersect.point
-      parameters.radius = intersect.distance
+      coneLight.target.position.set(pointB.x, pointB.y, pointB.z);
+      coneLight.lookAt(pointB)
       plane.position.copy(pointB)
       intersectFace = intersect.face
-      // change color of intersected face
-      
-  
+      paramradius = intersect.distance;
+      console.log(paramradius);
+      // particles
+      const positions = new Float32Array(parameters.count * 3)
+
+      for (let i = 0; i < parameters.count; i++) {
+        const i3 = i * 3
+
+        const x = Math.random() * r - r / 2
+        const y = Math.random() * r - r / 2
+        const z = Math.random() * r - r / 2
+
+        const radius = Math.random() * paramradius
+
+        positions[i3] = 0
+        positions[i3 + 1] = 0
+        positions[i3 + 2] = -radius
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+
+      /**
+        * Points
+        */
+      points = new THREE.Points(geometry, material)
+      scene.add(points)
+
 
 
       robot.lookAt(intersects[0].point)
@@ -478,9 +524,7 @@ function animate(dt) {
   if (mixer) mixer.update(delta);
 
 
-  if (robot) {
-
-  }
+  spotLightCameraHelper.update();
   requestAnimationFrame(animate);
 }
 animate();
@@ -508,16 +552,6 @@ init()
   // })
   // create 10 cubes
 
-  // for (let i = 0; i < numCubes; i++) {
-  //   const geometry = new THREE.BoxGeometry(1, 1, 1);
-  //   const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-  //   cube = new THREE.Mesh(geometry, material);
-  //   cubes.push(cube)
-  //   radius = 2.5;
-  //   // place cubes in a circle
-  //   cube.position.x = Math.cos((i / numCubes) * Math.PI * 2) * radius;
-  //   cube.position.y = Math.sin((i / numCubes) * Math.PI * 2) * radius;
 
-  //   scene.add(cube);
-  // }
+
   // cubes[2].add(robot)
