@@ -72,6 +72,8 @@ const walls = new THREE.Group()
 let wall1, wall2, wall3
 
 let wall1Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
+console.log(wall1Geo.faces);
+
 let wall2Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
 let wall3Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
 // get mose position
@@ -88,7 +90,9 @@ const videoTexture = new THREE.VideoTexture(video);
 
 videoTexture.flipY = false;
 
-let geometry, material, points
+let geometry, material, pointsParticles
+
+
 let lineParticlesGeometry, lineParticlesMaterial, lineParticles
 let planeMaterial = new THREE.ShaderMaterial()
 let bufferGeo = new THREE.BufferGeometry()
@@ -100,7 +104,7 @@ const normals = [];
 const colors = [];
 
 const size = 5;
-const segments = 5;
+const segments = 128;
 
 const halfSize = size / 2;
 const segmentSize = size / segments;
@@ -126,6 +130,9 @@ for (let i = 0; i <= segments; i++) {
   }
 
 }
+
+
+
 
 // generate indices (data for element array buffer)
 
@@ -190,22 +197,25 @@ async function loadModels() {
    * Walls
    */
 
-  wall1 = new THREE.Mesh(bufferGeo, new THREE.MeshPhongMaterial({
+  wall1 = new THREE.Mesh(bufferGeo, new THREE.MeshStandardMaterial({
+    color: 0xffffff,
     side: THREE.DoubleSide,
-    vertexColors: true
+    vertexColors: THREE.VertexColors
   }));
   wall1.colorsNeedUpdate = true;
   wall1.receiveShadow = true;
 
-  wall2 = new THREE.Mesh(bufferGeo, new THREE.MeshPhongMaterial({
+  wall2 = new THREE.Mesh(bufferGeo, new THREE.MeshStandardMaterial({
+    color: 0xffffff,
     side: THREE.DoubleSide,
-    vertexColors: true
+    vertexColors: THREE.VertexColors
   }));
   wall2.colorsNeedUpdate = true;
   wall2.receiveShadow = true;
-  wall3 = new THREE.Mesh(bufferGeo, new THREE.MeshPhongMaterial({
+  wall3 = new THREE.Mesh(bufferGeo, new THREE.MeshStandardMaterial({
+    color: 0xffffff,
     side: THREE.DoubleSide,
-    vertexColors: true
+    vertexColors: THREE.VertexColors
   }));
   wall3.colorsNeedUpdate = true;
   wall3.receiveShadow = true;
@@ -221,9 +231,10 @@ async function loadModels() {
   walls.add(wall1, wall2, wall3)
 
   scene.add(robot, walls)
+  // faces color
+  // const colorsAttribute = bufferGeo.geometry.attributes.color;
 
-
-
+  console.log(bufferGeo);
   /**
    * Raycaster Visual Line
    */
@@ -296,67 +307,136 @@ let paramradius = 0;
  */
 geometry = new THREE.BufferGeometry()
 material = new THREE.PointsMaterial({
-  color: 0x000000,
+  color: 0xffffff,
   size: parameters.size,
   sizeAttenuation: true,
   depthWrite: true,
   blending: THREE.AdditiveBlending
 })
 
+function particles() {
+  // particles
 
-// const generateLineParticles= () => {
-//   /**
-//    * Geometry
-//    */
-//   lineParticlesGeometry = new THREE.BufferGeometry()
-//   const positions = new Float32Array(parameters.count * 3)
+}
 
-//   for (let i = 0; i < parameters.count; i++) {
-//     const i3 = i * 3
+console.log(bufferGeo);
 
-//     const x = Math.random() * r - r / 2
-//     const y = Math.random() * r - r / 2
-//     const z = Math.random() * r - r / 2
-//     positions[i3] = x
-//     positions[i3 + 1] = y
-//     positions[i3 + 2] = z
-//   }
+function raycast() {
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(walls.children, true);
+  let intersectFace = null;
 
-//   lineParticlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-//   lineParticlesMaterial = new THREE.PointsMaterial({
-//     color: 0xffffff,
-//     size: parameters.size,
-//     sizeAttenuation: true,
-//     depthWrite: false,
-//     blending: THREE.AdditiveBlending
-//   })
+  if (intersects.length) {
+    if (currentIntersect) {
 
-//   /**
-//     * Points
-//     */
-//   lineParticles = new THREE.Points(lineParticlesGeometry, lineParticlesMaterial)
-//   scene.add(lineParticles)
-//   // Destroy old galaxy
-//   // if (points !== null) {
-//   //   geometry.dispose()
-//   //   material.dispose()
-//   //   scene.remove(points)
-//   // }
-// }
-// generateLineParticles()
+      const intersect = intersects[0]
+      // console.log(intersect);
+      pointB = intersect.point
+      coneLight.target.position.set(pointB.x, pointB.y, pointB.z);
+      coneLight.lookAt(pointB)
+      plane.position.copy(pointB)
+      intersectFace = intersect.face
+      paramradius = intersect.distance;
 
-for (let i = 0; i < numCubes; i++) {
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
- const cube = new THREE.Mesh(geometry, material);
-  cubes.push(cube)
-  radius = 2.5;
-  // place cubes in a circle
-  cube.position.x = Math.cos((i / numCubes) * Math.PI * 2) * radius;
-  cube.position.y = Math.sin((i / numCubes) * Math.PI * 2) * radius;
-  cube.position.z = -2;
-cube.receiveShadow = true;
-  scene.add(cube);
+
+      /**
+       * Particles
+       */
+      const positions = new Float32Array(parameters.count * 3)
+
+      for (let i = 0; i < parameters.count; i++) {
+        const i3 = i * 3
+
+        const x = Math.random() * r - r / 2
+        const y = Math.random() * r - r / 2
+        const z = Math.random() * r - r / 2
+
+        // set radius to distance between pointA and pointB
+        const radius = line.position
+
+        positions[i3] = 0
+        positions[i3 + 1] = 0
+        positions[i3 + 2] = -radius
+
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+
+      /**
+        * Points
+        */
+      pointsParticles = new THREE.Points(geometry, material)
+      scene.add(pointsParticles)
+      pointsParticles.rotation.copy(line.rotation)
+
+
+
+      robot.lookAt(intersects[0].point)
+      robot.rotateY(Math.PI / 2)
+      line.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
+      line.geometry.attributes.position.needsUpdate = true
+
+      const planeHeight = plane.geometry.parameters.height;
+      const planeWidth = plane.geometry.parameters.width;
+      //rotate plane depending on wall
+      if (currentIntersect.object.name == 'wall1') {
+        plane.rotation.x = Math.PI / 2
+        plane.rotation.y = 0
+        plane.rotation.z = 0
+        //add offset to plane to stay on wall
+        plane.position.y = pointB.y + 0.1
+        // plane.position.x < 0 ? plane.position.x = pointB.x + planeHeight / 2 : plane.position.x = pointB.x - planeHeight / 2
+        // plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
+              //changer bufferGeo color 
+      bufferGeo.attributes.color.array[intersectFace.a * 3 + 0] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.a * 3 + 1] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.a * 3 + 2] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.b * 3 + 0] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.b * 3 + 1] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.b * 3 + 2] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.c * 3 + 0] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.c * 3 + 1] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.c * 3 + 2] = Math.random();
+      bufferGeo.attributes.color.needsUpdate = true;
+
+      }
+      if (currentIntersect.object.name == 'wall2') {
+        plane.rotation.x = 0
+        plane.rotation.y = Math.PI / 2
+        plane.rotation.z = Math.PI
+        plane.position.x = pointB.x + 0.001
+        // plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 : plane.position.y = pointB.y - planeHeight / 2
+        // plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
+
+
+      }
+      if (currentIntersect.object.name == 'wall3') {
+        plane.rotation.x = 0
+        plane.rotation.y = 0
+        plane.rotation.z = Math.PI
+        plane.position.z = pointB.z + 0.001
+        // plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 : plane.position.y = pointB.y - planeHeight / 2
+        // plane.position.x < 0 ? plane.position.x = pointB.x + planeWidth / 2 : plane.position.x = pointB.x - planeWidth / 2
+
+      }
+
+    }
+    // intersects[0].object.material.color.set(0x00ff00);
+    currentIntersect = intersects[0]
+  }
+  else {
+    if (currentIntersect) {
+      // currentIntersect.object.material.color.set(0xff0000);
+
+      // console.log('mouse leave')
+    }
+
+    currentIntersect = null
+  }
+
+  plane.geometry.elementsNeedUpdate = true;
+
 }
 
 /**
@@ -364,12 +444,13 @@ cube.receiveShadow = true;
  */
 const light = new THREE.DirectionalLight(0xFFFFFF);
 const ambientLight = new THREE.AmbientLight(0x404040);
+ambientLight.intensity = 0.5;
 
-const coneLight = new THREE.SpotLight(0xf0ff00, 1, 5, Math.PI * 0.3, 0.25, 1);
+const coneLight = new THREE.SpotLight(0xffffff, 1, 5, Math.PI * 0.3, 0.25, 1);
 coneLight.rotateX(Math.PI * 0.5);
 coneLight.penumbra = 1;
 coneLight.position.set(0, -1, 0);
-coneLight.power = 10;
+coneLight.power = 100;
 coneLight.castShadow = true;
 coneLight.shadow.mapSize.width = 1024;
 coneLight.shadow.mapSize.height = 1024;
@@ -405,8 +486,8 @@ function animate(dt) {
   controls.update();
   const delta = clock.getDelta();
 
-
-
+  raycast()
+  particles()
   renderer.antialias = true;
   renderer.setClearColor(0xffffff, 0);
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -421,104 +502,6 @@ function animate(dt) {
   /**
      * Raycaster and intersections
      */
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(walls.children, true);
-  let intersectFace = null;
-
-
-  if (intersects.length) {
-    if (currentIntersect) {
-
-      const intersect = intersects[0]
-      // console.log(intersect);
-      pointB = intersect.point
-      coneLight.target.position.set(pointB.x, pointB.y, pointB.z);
-      coneLight.lookAt(pointB)
-      plane.position.copy(pointB)
-      intersectFace = intersect.face
-      paramradius = intersect.distance;
-      console.log(paramradius);
-      // particles
-      const positions = new Float32Array(parameters.count * 3)
-
-      for (let i = 0; i < parameters.count; i++) {
-        const i3 = i * 3
-
-        const x = Math.random() * r - r / 2
-        const y = Math.random() * r - r / 2
-        const z = Math.random() * r - r / 2
-
-        const radius = Math.random() * paramradius
-
-        positions[i3] = 0
-        positions[i3 + 1] = 0
-        positions[i3 + 2] = -radius
-      }
-
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-
-      /**
-        * Points
-        */
-      points = new THREE.Points(geometry, material)
-      scene.add(points)
-
-
-
-      robot.lookAt(intersects[0].point)
-      robot.rotateY(Math.PI / 2)
-      line.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
-      line.geometry.attributes.position.needsUpdate = true
-
-      const planeHeight = plane.geometry.parameters.height;
-      const planeWidth = plane.geometry.parameters.width;
-      //rotate plane depending on wall
-      if (currentIntersect.object.name == 'wall1') {
-        plane.rotation.x = Math.PI / 2
-        plane.rotation.y = 0
-        plane.rotation.z = 0
-        //add offset to plane to stay on wall
-        plane.position.y = pointB.y + 0.1
-        plane.position.x < 0 ? plane.position.x = pointB.x + planeHeight / 2 : plane.position.x = pointB.x - planeHeight / 2
-        plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
-
-      }
-      if (currentIntersect.object.name == 'wall2') {
-        plane.rotation.x = 0
-        plane.rotation.y = Math.PI / 2
-        plane.rotation.z = Math.PI
-        plane.position.x = pointB.x + 0.001
-        plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 : plane.position.y = pointB.y - planeHeight / 2
-        plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
-
-
-      }
-      if (currentIntersect.object.name == 'wall3') {
-        plane.rotation.x = 0
-        plane.rotation.y = 0
-        plane.rotation.z = Math.PI
-        plane.position.z = pointB.z + 0.001
-        plane.position.y < 0 ? plane.position.y = pointB.y + planeHeight / 2 : plane.position.y = pointB.y - planeHeight / 2
-        plane.position.x < 0 ? plane.position.x = pointB.x + planeWidth / 2 : plane.position.x = pointB.x - planeWidth / 2
-
-      }
-
-    }
-    // intersects[0].object.material.color.set(0x00ff00);
-    currentIntersect = intersects[0]
-  }
-  else {
-    if (currentIntersect) {
-      // currentIntersect.object.material.color.set(0xff0000);
-
-      // console.log('mouse leave')
-    }
-
-    currentIntersect = null
-  }
-
-  plane.geometry.elementsNeedUpdate = true;
 
 
   if (mixer) mixer.update(delta);
