@@ -7,14 +7,16 @@
   "license": "MIT",
   "scripts": {
     "build": "webpack --config ./config/webpack.config.prod.js",
-    "start": "webpack serve --config ./config/webpack.config.dev.js"
+    "start": "webpack serve --config ./config/webpack.config.dev.js",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "lil-gui": "^0.17.0",
     "postprocessing": "^6.24.1",
     "three": "^0.138.2",
     "three-noise": "^1.1.2",
-    "threejs-orbit-controls": "^1.0.3"
+    "threejs-orbit-controls": "^1.0.3",
+    "vercel": "^28.4.12"
   },
   "devDependencies": {
     "@types/three": "^0.140.0",

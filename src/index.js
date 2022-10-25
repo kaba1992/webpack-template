@@ -9,7 +9,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
 import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js';
-import { PlaneGeometry } from 'three';
+import { LuminanceFormat, PlaneGeometry } from 'three';
 import * as dat from 'lil-gui'
 
 import waterVertexShader from './shaders/vertex.glsl'
@@ -71,11 +71,6 @@ let robot
 const walls = new THREE.Group()
 let wall1, wall2, wall3
 
-let wall1Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
-console.log(wall1Geo.faces);
-
-let wall2Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
-let wall3Geo = new THREE.PlaneGeometry(5, 5, 128, 128)
 // get mose position
 const mouse = new THREE.Vector2();
 let raycaster = new THREE.Raycaster();
@@ -96,15 +91,21 @@ let geometry, material, pointsParticles
 let lineParticlesGeometry, lineParticlesMaterial, lineParticles
 let planeMaterial = new THREE.ShaderMaterial()
 let bufferGeo = new THREE.BufferGeometry()
+// let bufferGeo1 = new THREE.BufferGeometry()
+// let bufferGeo2 = new THREE.BufferGeometry()
 
 const indices = [];
 
+
 const vertices = [];
+
 const normals = [];
+
 const colors = [];
 
+
 const size = 5;
-const segments = 128;
+const segments = 128/2;
 
 const halfSize = size / 2;
 const segmentSize = size / segments;
@@ -120,12 +121,22 @@ for (let i = 0; i <= segments; i++) {
     const x = (j * segmentSize) - halfSize;
 
     vertices.push(x, - y, 0);
+    // vertices1.push(x, - y, 0);
+    // vertices2.push(x, - y, 0);
     normals.push(0, 0, 1);
+    // normals1.push(0, 0, 1);
+    // normals2.push(0, 0, 1);
 
-    const r = (x / size) + 0.5;
-    const g = (y / size) + 0.5;
 
-    colors.push(r, g, 1);
+    const r = 1;
+    const g = 2;
+    const b = 50;
+
+        
+
+    colors.push(r, g, b);
+    // colors1.push(r, g, b);
+    // colors2.push(r, g, b);
 
   }
 
@@ -145,19 +156,34 @@ for (let i = 0; i < segments; i++) {
     const c = (i + 1) * (segments + 1) + j;
     const d = (i + 1) * (segments + 1) + (j + 1);
 
+
     // generate two faces (triangles) per iteration
 
     indices.push(a, b, d); // face one
     indices.push(b, c, d); // face two
+    // indices1.push(a, b, d); // face one
+    // indices1.push(b, c, d); // face two
+    // indices2.push(a, b, d); // face one
+    // indices2.push(b, c, d); // face two
+
+  
+    
+
 
   }
 
 }
+// bufferGeo.computeBoundingBox();
+// bufferGeo1.computeBoundingBox();
+// bufferGeo2.computeBoundingBox();
 
 bufferGeo.setIndex(indices);
 bufferGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 bufferGeo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
 bufferGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+// bufferGeo.computeVertexNormals();
+bufferGeo.computeBoundingBox();
 
 
 
@@ -196,27 +222,29 @@ async function loadModels() {
   /**
    * Walls
    */
-
-  wall1 = new THREE.Mesh(bufferGeo, new THREE.MeshStandardMaterial({
+  const material1 = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     side: THREE.DoubleSide,
     vertexColors: THREE.VertexColors
-  }));
+  })
+  const material2 = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    vertexColors: THREE.VertexColors
+  })
+  const material3 = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    vertexColors: THREE.VertexColors
+  })  
+  wall1 = new THREE.Mesh(bufferGeo, material1);
   wall1.colorsNeedUpdate = true;
   wall1.receiveShadow = true;
 
-  wall2 = new THREE.Mesh(bufferGeo, new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    side: THREE.DoubleSide,
-    vertexColors: THREE.VertexColors
-  }));
+  wall2 = new THREE.Mesh(bufferGeo, material2);
   wall2.colorsNeedUpdate = true;
   wall2.receiveShadow = true;
-  wall3 = new THREE.Mesh(bufferGeo, new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    side: THREE.DoubleSide,
-    vertexColors: THREE.VertexColors
-  }));
+  wall3 = new THREE.Mesh(bufferGeo, material3); 
   wall3.colorsNeedUpdate = true;
   wall3.receiveShadow = true;
   wall1.name = 'wall1'
@@ -324,20 +352,30 @@ console.log(bufferGeo);
 function raycast() {
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(walls.children, true);
+  const intersect = intersects[0]
+
   let intersectFace = null;
 
+
+
+ 
   if (intersects.length) {
     if (currentIntersect) {
+      intersectFace = intersect.face
+        setTimeout(() => {
+    bufferGeo.attributes.color.array[intersectFace.a * 3 + 0] = 1;
+    bufferGeo.attributes.color.array[intersectFace.b * 3 + 1] = 2;
+    bufferGeo.attributes.color.array[intersectFace.c * 3 + 2] = 50;
 
-      const intersect = intersects[0]
-      // console.log(intersect);
+  }, 500);
+      bufferGeo.attributes.color.needsUpdate = true;
+      
       pointB = intersect.point
       coneLight.target.position.set(pointB.x, pointB.y, pointB.z);
       coneLight.lookAt(pointB)
       plane.position.copy(pointB)
-      intersectFace = intersect.face
       paramradius = intersect.distance;
-
+console.log(intersectFace);
 
       /**
        * Particles
@@ -369,7 +407,15 @@ function raycast() {
       pointsParticles = new THREE.Points(geometry, material)
       scene.add(pointsParticles)
       pointsParticles.rotation.copy(line.rotation)
+      
 
+      bufferGeo.attributes.color.array[intersectFace.a * 3 + 0] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.b * 3 + 1] = Math.random();
+      bufferGeo.attributes.color.array[intersectFace.c * 3 + 2] = Math.random();
+   
+      //reset  face color after 2 seconds
+     
+     
 
 
       robot.lookAt(intersects[0].point)
@@ -389,16 +435,7 @@ function raycast() {
         // plane.position.x < 0 ? plane.position.x = pointB.x + planeHeight / 2 : plane.position.x = pointB.x - planeHeight / 2
         // plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
               //changer bufferGeo color 
-      bufferGeo.attributes.color.array[intersectFace.a * 3 + 0] = Math.random();
-      bufferGeo.attributes.color.array[intersectFace.a * 3 + 1] = Math.random();
-      bufferGeo.attributes.color.array[intersectFace.a * 3 + 2] = Math.random();
-      bufferGeo.attributes.color.array[intersectFace.b * 3 + 0] = Math.random();
-      bufferGeo.attributes.color.array[intersectFace.b * 3 + 1] = Math.random();
-      bufferGeo.attributes.color.array[intersectFace.b * 3 + 2] = Math.random();
-      bufferGeo.attributes.color.array[intersectFace.c * 3 + 0] = Math.random();
-      bufferGeo.attributes.color.array[intersectFace.c * 3 + 1] = Math.random();
-      bufferGeo.attributes.color.array[intersectFace.c * 3 + 2] = Math.random();
-      bufferGeo.attributes.color.needsUpdate = true;
+
 
       }
       if (currentIntersect.object.name == 'wall2') {
@@ -446,11 +483,11 @@ const light = new THREE.DirectionalLight(0xFFFFFF);
 const ambientLight = new THREE.AmbientLight(0x404040);
 ambientLight.intensity = 0.5;
 
-const coneLight = new THREE.SpotLight(0xffffff, 1, 5, Math.PI * 0.3, 0.25, 1);
+const coneLight = new THREE.SpotLight(0xff00ff, 1, 5, Math.PI * 0.2, 0.25, 1);
 coneLight.rotateX(Math.PI * 0.5);
 coneLight.penumbra = 1;
 coneLight.position.set(0, -1, 0);
-coneLight.power = 100;
+coneLight.power = 5;
 coneLight.castShadow = true;
 coneLight.shadow.mapSize.width = 1024;
 coneLight.shadow.mapSize.height = 1024;
