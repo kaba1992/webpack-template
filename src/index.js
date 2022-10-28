@@ -105,7 +105,7 @@ const colors = [];
 
 
 const size = 5;
-const segments = 128/2;
+const segments = 128 / 2;
 
 const halfSize = size / 2;
 const segmentSize = size / segments;
@@ -132,7 +132,7 @@ for (let i = 0; i <= segments; i++) {
     const g = 2;
     const b = 50;
 
-        
+
 
     colors.push(r, g, b);
     // colors1.push(r, g, b);
@@ -166,8 +166,8 @@ for (let i = 0; i < segments; i++) {
     // indices2.push(a, b, d); // face one
     // indices2.push(b, c, d); // face two
 
-  
-    
+
+
 
 
   }
@@ -202,21 +202,24 @@ window.addEventListener('mousemove', (e) => {
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
   // console.log(mouse.x, mouse.y);
 })
+let robotGeometry, robotMaterial, robotMesh
 
 async function loadModels() {
 
   /**
    * Robot
    */
-  const model = await modelLoader('/assets/models/robot/Robot_Renaud.glb')
+  const model = await modelLoader('/assets/models/robot/camera.glb')
   robot = model.scene
-  robot.scale.set(0.5, 0.5, 0.5)
-  robot.rotation.y = 3 * Math.PI / 2
-  robot.position.y = -1
+
+  robot.scale.set(3, 3, 3)
+  // robot.rotation.y =  3 * Math.PI / 2
+  robot.position.y = -1.2
   robot.traverse(function (el) {
     if (el.type == 'Mesh') {
       el.material.envMap = textureCube
       el.material.envMapIntensity = 1
+      robotMesh = el
     }
   })
   /**
@@ -236,7 +239,7 @@ async function loadModels() {
     color: 0xffffff,
     side: THREE.DoubleSide,
     vertexColors: THREE.VertexColors
-  })  
+  })
   wall1 = new THREE.Mesh(bufferGeo, material1);
   wall1.colorsNeedUpdate = true;
   wall1.receiveShadow = true;
@@ -244,7 +247,7 @@ async function loadModels() {
   wall2 = new THREE.Mesh(bufferGeo, material2);
   wall2.colorsNeedUpdate = true;
   wall2.receiveShadow = true;
-  wall3 = new THREE.Mesh(bufferGeo, material3); 
+  wall3 = new THREE.Mesh(bufferGeo, material3);
   wall3.colorsNeedUpdate = true;
   wall3.receiveShadow = true;
   wall1.name = 'wall1'
@@ -262,7 +265,7 @@ async function loadModels() {
   // faces color
   // const colorsAttribute = bufferGeo.geometry.attributes.color;
 
-  console.log(bufferGeo);
+  // console.log(bufferGeo);
   /**
    * Raycaster Visual Line
    */
@@ -281,7 +284,28 @@ async function loadModels() {
   scene.add(line);
 
   // create particle to fit on the line
+  // camera footer
+  //crete 3 cylinder
+  const geometry = new THREE.CylinderGeometry(0.1, 0.1, 1.39, 32);
+  const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
+  const count = 3;
+  const radius = 0.05;
+  const cylinders = new THREE.Group();
+  for (let i = 0; i < count; i++) {
+    const cylinder = new THREE.Mesh(geometry, material);
+    cylinders.add(cylinder);
+    // set 3 cylinder position like cone
+    cylinder.position.x = radius * Math.cos(i * 2 * Math.PI / count);
+    cylinder.position.z = radius * Math.sin(i * 2 * Math.PI / count);
+    cylinder.rotation.x = radius * Math.sin(i * 2 * Math.PI / count);
+    cylinder.rotation.z = radius * Math.cos(i * 2 * Math.PI / count);
+    // cylinder.position.z = -0.7;
+    cylinder.position.y = -1.8;
 
+    cylinder.scale.set(0.2, 1, 0.2);
+
+    scene.add(cylinders);
+  }
 
 
   /**
@@ -347,7 +371,7 @@ function particles() {
 
 }
 
-console.log(bufferGeo);
+// console.log(bufferGeo);
 
 function raycast() {
   raycaster.setFromCamera(mouse, camera);
@@ -358,24 +382,34 @@ function raycast() {
 
 
 
- 
+
+
   if (intersects.length) {
     if (currentIntersect) {
       intersectFace = intersect.face
-        setTimeout(() => {
-    bufferGeo.attributes.color.array[intersectFace.a * 3 + 0] = 1;
-    bufferGeo.attributes.color.array[intersectFace.b * 3 + 1] = 2;
-    bufferGeo.attributes.color.array[intersectFace.c * 3 + 2] = 50;
 
-  }, 500);
       bufferGeo.attributes.color.needsUpdate = true;
-      
+
       pointB = intersect.point
       coneLight.target.position.set(pointB.x, pointB.y, pointB.z);
       coneLight.lookAt(pointB)
       plane.position.copy(pointB)
       paramradius = intersect.distance;
-console.log(intersectFace);
+      // console.log(intersectFace);
+
+
+      setTimeout(() => {
+
+        bufferGeo.attributes.color.array[intersectFace.a * 3 + 0] = 1;
+        bufferGeo.attributes.color.array[intersectFace.b * 3 + 1] = 2;
+        bufferGeo.attributes.color.array[intersectFace.c * 3 + 2] = 50;
+
+      }, 500);
+
+      if (!currentIntersect) {
+
+
+      }
 
       /**
        * Particles
@@ -407,19 +441,19 @@ console.log(intersectFace);
       pointsParticles = new THREE.Points(geometry, material)
       scene.add(pointsParticles)
       pointsParticles.rotation.copy(line.rotation)
-      
+
 
       bufferGeo.attributes.color.array[intersectFace.a * 3 + 0] = Math.random();
       bufferGeo.attributes.color.array[intersectFace.b * 3 + 1] = Math.random();
       bufferGeo.attributes.color.array[intersectFace.c * 3 + 2] = Math.random();
-   
+
       //reset  face color after 2 seconds
-     
-     
+
+
 
 
       robot.lookAt(intersects[0].point)
-      robot.rotateY(Math.PI / 2)
+      robot.rotateY(- 2 * Math.PI / 2)
       line.geometry.attributes.position.setXYZ(1, pointB.x, pointB.y, pointB.z)
       line.geometry.attributes.position.needsUpdate = true
 
@@ -434,7 +468,7 @@ console.log(intersectFace);
         plane.position.y = pointB.y + 0.1
         // plane.position.x < 0 ? plane.position.x = pointB.x + planeHeight / 2 : plane.position.x = pointB.x - planeHeight / 2
         // plane.position.z < 0 ? plane.position.z = pointB.z + planeWidth / 2 : plane.position.z = pointB.z - planeWidth / 2
-              //changer bufferGeo color 
+        //changer bufferGeo color 
 
 
       }
@@ -466,7 +500,9 @@ console.log(intersectFace);
     if (currentIntersect) {
       // currentIntersect.object.material.color.set(0xff0000);
 
-      // console.log('mouse leave')
+
+
+      console.log('mouse leave')
     }
 
     currentIntersect = null
