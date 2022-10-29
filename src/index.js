@@ -289,7 +289,7 @@ async function loadModels() {
   const geometry = new THREE.CylinderGeometry(0.1, 0.1, 1.39, 32);
   const material = new THREE.MeshBasicMaterial({ color: 0x000000 });
   const count = 3;
-  const radius = 0.05;
+  const radius = 0.1;
   const cylinders = new THREE.Group();
   for (let i = 0; i < count; i++) {
     const cylinder = new THREE.Mesh(geometry, material);
@@ -297,8 +297,8 @@ async function loadModels() {
     // set 3 cylinder position like cone
     cylinder.position.x = radius * Math.cos(i * 2 * Math.PI / count);
     cylinder.position.z = radius * Math.sin(i * 2 * Math.PI / count);
-    cylinder.rotation.x = radius * Math.sin(i * 2 * Math.PI / count);
-    cylinder.rotation.z = radius * Math.cos(i * 2 * Math.PI / count);
+    cylinder.rotation.x = radius * Math.sin(i * 2 * (4 * Math.PI / 2) / count);
+    cylinder.rotation.z = radius * Math.cos(i * 2 * (4 * Math.PI / 2) / count);
     // cylinder.position.z = -0.7;
     cylinder.position.y = -1.8;
 
